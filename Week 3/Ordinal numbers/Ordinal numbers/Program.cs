@@ -20,7 +20,7 @@ namespace Ordinal_numbers
                     return "nd";
                 else if (funcNumber == 3)
                     return "rd";
-                else 
+                else
                     return "th";
             }
 
