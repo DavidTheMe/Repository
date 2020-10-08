@@ -8,14 +8,20 @@ namespace Insertion_sort
     {
         static void Main(string[] args)
         {
-            var data = new List<int>();
-            var random = new Random();
+            
+            int[] data = new int[1];
 
             for (int i = 0; i < 80; i++)
             {
                 data.Add(random.Next(50));
                 DisplayData(data);
+                Thread.Sleep(10);
             }
+
+            var data = new List<int>();
+            var random = new Random();
+
+
 
             // Bubble sort
 
