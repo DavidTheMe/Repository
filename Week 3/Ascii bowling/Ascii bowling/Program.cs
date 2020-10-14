@@ -14,31 +14,40 @@ namespace Ascii_bowling
                 if (i == 9)
                 {
                     Console.SetCursorPosition(30, i * 4);
-                    Console.Write("╟─╥─╠═╗"); Console.SetCursorPosition(30, 1 + (i * 4));
+                    Console.Write("╠═╦═╬═╗"); Console.SetCursorPosition(30, 1 + (i * 4));
                     Console.Write("║ ║ ║ ║"); Console.SetCursorPosition(30, 2 + (i * 4));
-                    Console.Write("╟─╨─╨─╢"); Console.SetCursorPosition(30, 3 + (i * 4));
+                    Console.Write("╠═╩═╩═╣"); Console.SetCursorPosition(30, 3 + (i * 4));
                     Console.Write("║     ║"); Console.SetCursorPosition(30, 4 + (i * 4));
                     Console.Write("╚═════╝");
+                }
+                else if (i == 0)
+                {
+                    Console.SetCursorPosition(30, i * 4);
+                    Console.Write("╔═╦═╗"); Console.SetCursorPosition(30, 1 + (i * 4));
+                    Console.Write("║ ║ ║"); Console.SetCursorPosition(30, 2 + (i * 4));
+                    Console.Write("╠═╩═╣"); Console.SetCursorPosition(30, 3 + (i * 4));
+                    Console.Write("║   ║");
                 }
                 else
                 {
                     Console.SetCursorPosition(30, i * 4);
-                    Console.Write("╟─╥─╢"); Console.SetCursorPosition(30, 1 + (i * 4));
+                    Console.Write("╠═╦═╣"); Console.SetCursorPosition(30, 1 + (i * 4));
                     Console.Write("║ ║ ║"); Console.SetCursorPosition(30, 2 + (i * 4));
-                    Console.Write("╟─╨─╢"); Console.SetCursorPosition(30, 3 + (i * 4));
+                    Console.Write("╠═╩═╣"); Console.SetCursorPosition(30, 3 + (i * 4));
                     Console.Write("║   ║");
                 }
 
-                for (int j = 0; j < score_sheet[i].Length; j++)
+                int[] frameRolls = score_sheet[i];
+                if (frameRolls != null)
                 {
-                    Console.SetCursorPosition(31 + (j * 2), 3 + (i * 4));
-                    Console.Write($"{score_sheet[i][j]}");
+                    for (int j = 0; j < frameRolls.Length; j++)
+                    {
+                        Console.SetCursorPosition(31 + (j * 2),1 + i * 4);
+                        Console.Write($"{frameRolls[j]}");
+                    }
+                    Console.SetCursorPosition(31, 3 + i * 4);
+                    Console.Write($"{total_score[i]}");
                 }
-                if (total_score[i] < 10)
-                    Console.SetCursorPosition(32, 5 + (i * 4));
-                else if (total_score[i] > 9)
-                    Console.SetCursorPosition(31, 5 + (i * 4));
-                Console.Write(total_score[i]);
             }
         }
         static void Draw_scoreboard(int first_roll, int second_roll, int final_score)
@@ -334,9 +343,12 @@ namespace Ascii_bowling
         }
         static void Main(string[] args)
         {
+            Console.CursorVisible = false;
+            Console.SetWindowSize(40, 45);
+            Console.SetBufferSize(40, 45);
+
             //variables
 
-            Console.CursorVisible = false;
             int roll_number = -1;
             int final_score = 0;
             var pins_standing = new List<bool>();
@@ -483,14 +495,7 @@ namespace Ascii_bowling
                         second_roll -= first_roll;
                         final_score += second_roll + first_roll;
                         score_sheet[i] = new int[2] { first_roll, second_roll };
-                        if (i == 0)
-                        {
-                            total_score[i] = final_score;
-                        }
-                        else
-                        {
-                            total_score[i] = total_score[i - 1] + final_score;
-                        }
+                        total_score[i] = final_score;
                     }
 
                     //Draw stuff
