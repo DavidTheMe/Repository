@@ -54,7 +54,7 @@ namespace Ascii_bowling
                             Console.Write($"{total_score[i]}");
                         }
                     }
-                    else if (i == 0 && frameRolls.Length == 2)
+                    else if (i == 0 && frameRolls.Length == 2 && total_score[i] != -1)
                     {
                         Console.SetCursorPosition(31, 3 + i * 4);
                         Console.Write($"{total_score[i]}");
@@ -227,7 +227,7 @@ namespace Ascii_bowling
                 Console.BackgroundColor = ConsoleColor.Black;
             }
         }
-        static void Knock_pin(List<bool> pins_standing, int pin_to_knock)
+        static void Knock_pin(List<bool> pins_standing, int pin_to_knock, int strength)
         {
             pins_standing[pin_to_knock] = false;
             var rand = new Random();
@@ -238,24 +238,24 @@ namespace Ascii_bowling
 
             if (pin_to_knock == 9)
             {
-                if (rand.Next(1, 3) == 1)
-                    Knock_pin(pins_standing, pin_to_knock - 1);
-                if (rand.Next(1, 3) == 1)
-                    Knock_pin(pins_standing, pin_to_knock - 2);
+                if (rand.Next(0, strength) == 0)
+                    Knock_pin(pins_standing, pin_to_knock - 1, strength);
+                if (rand.Next(0, strength) == 0)
+                    Knock_pin(pins_standing, pin_to_knock - 2, strength);
             }
             else if (pin_to_knock == 7 || pin_to_knock == 8)
             {
-                if (rand.Next(1, 3) == 1)
-                    Knock_pin(pins_standing, pin_to_knock - 2);
-                if (rand.Next(1, 3) == 1)
-                    Knock_pin(pins_standing, pin_to_knock - 3);
+                if (rand.Next(0, strength) == 0)
+                    Knock_pin(pins_standing, pin_to_knock - 2, strength);
+                if (rand.Next(0, strength) == 0)
+                    Knock_pin(pins_standing, pin_to_knock - 3, strength);
             }
             else if (pin_to_knock > 3 && pin_to_knock < 7)
             {
-                if (rand.Next(1, 3) == 1)
-                    Knock_pin(pins_standing, pin_to_knock - 3);
-                if (rand.Next(1, 3) == 1)
-                    Knock_pin(pins_standing, pin_to_knock - 4);
+                if (rand.Next(0, strength) == 0)
+                    Knock_pin(pins_standing, pin_to_knock - 3, strength);
+                if (rand.Next(0, strength) == 0)
+                    Knock_pin(pins_standing, pin_to_knock - 4, strength);
             }
         }
         static void Draw_minigame(int pos)
@@ -294,6 +294,87 @@ namespace Ascii_bowling
             }
             Console.BackgroundColor = ConsoleColor.Black;
         }
+        static void Do_strength_minigame(out int strength)
+        {
+            var random = new Random();
+            
+            //Choose position mini game
+            strength = random.Next(1, 7);
+            int dir = random.Next(0, 2);
+
+            for (int n = 0; n < 100; n++)
+            {
+                if (dir == 1)
+                {
+                    if (strength + 1 == 8)
+                    {
+                        dir = 0;
+                        Draw_strength_minigame(strength);
+                    }
+                    else
+                    {
+                        strength++;
+                        Draw_strength_minigame(strength);
+                    }
+                }
+                else if (dir == 0)
+                {
+                    if (strength - 1 == 0)
+                    {
+                        dir = 1;
+                        Draw_strength_minigame(strength);
+                    }
+                    else
+                    {
+                        strength--;
+                        Draw_strength_minigame(strength);
+                    }
+                }
+                //Sleep
+                int amount_to_sleep = strength * 2 * 17;
+
+                if (amount_to_sleep > 0)
+                    Thread.Sleep(amount_to_sleep);
+                else if (amount_to_sleep == 0)
+                    Thread.Sleep(30);
+                else if (amount_to_sleep < 0)
+                    Thread.Sleep((amount_to_sleep - amount_to_sleep) - amount_to_sleep);
+
+                //Button pressed
+                if (Console.KeyAvailable)
+                {
+                    Console.ReadKey();
+                    break;
+                }
+            }
+        }
+        static void Draw_strength_minigame(int strength)
+        {
+            Console.BackgroundColor = ConsoleColor.DarkRed;
+            Console.SetCursorPosition(0, 5);
+            Console.WriteLine("       ");
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.WriteLine("       ");
+            Console.WriteLine("       ");
+            Console.WriteLine("   .   ");
+            Console.WriteLine("  . .  ");
+            Console.WriteLine(" .   . ");
+            Console.WriteLine(".     .");
+            Console.WriteLine("       ");
+            Console.WriteLine("       ");
+            Console.ForegroundColor = ConsoleColor.White;
+
+            Console.BackgroundColor = ConsoleColor.Red;
+            for (int i = 1; i < 8; i++)
+            {
+                Console.SetCursorPosition(9, i);
+                if (i == strength)
+                    Console.Write("██");
+                else
+                    Console.Write("░░");
+            }
+            Console.BackgroundColor = ConsoleColor.Black;
+        }
         static void Main(string[] args)
         {
             Console.CursorVisible = false;
@@ -306,6 +387,8 @@ namespace Ascii_bowling
             var pins_standing = new List<bool>();
             for (int i = 0; i < 10; i++)
                 pins_standing.Add(true);
+
+            int strength = 0;
 
             int[][] score_sheet = new int[10][];
             int[] points_gained = new int[10]
@@ -343,7 +426,7 @@ namespace Ascii_bowling
 
                     //Choose position mini game
                     int pos = random.Next(1, 7);
-                    int dir = 1;
+                    int dir = random.Next(0, 2);
 
                     for (int n = 0; n < 100; n++)
                     {
@@ -389,46 +472,49 @@ namespace Ascii_bowling
                             Console.ReadKey();
                             break;
                         }
+
                     }
                     roll_number = pos;
+
+                    Do_strength_minigame(out strength);
 
                     //Knock pins
                     if (roll_number == 1)
                     {
-                        Knock_pin(pins_standing, 0);
+                        Knock_pin(pins_standing, 0, strength);
                     }
                     if (roll_number == 2)
                     {
-                        Knock_pin(pins_standing, 4);
+                        Knock_pin(pins_standing, 4, strength);
                     }
                     if (roll_number == 3)
                     {
                         if (pins_standing[7] == true)
-                            Knock_pin(pins_standing, 7);
+                            Knock_pin(pins_standing, 7, strength);
                         else if (pins_standing[1] == true)
-                            Knock_pin(pins_standing, 1);
+                            Knock_pin(pins_standing, 1, strength);
                     }
                     if (roll_number == 4)
                     {
                         if (pins_standing[9] == true)
-                            Knock_pin(pins_standing, 9);
+                            Knock_pin(pins_standing, 9, strength);
                         else if (pins_standing[5] == true)
-                            Knock_pin(pins_standing, 5);
+                            Knock_pin(pins_standing, 5, strength);
                     }
                     if (roll_number == 5)
                     {
                         if (pins_standing[8] == true)
-                            Knock_pin(pins_standing, 8);
+                            Knock_pin(pins_standing, 8, strength);
                         else if (pins_standing[2] == true)
-                            Knock_pin(pins_standing, 2);
+                            Knock_pin(pins_standing, 2, strength);
                     }
                     if (roll_number == 6)
                     {
-                        Knock_pin(pins_standing, 6);
+                        Knock_pin(pins_standing, 6, strength);
                     }
                     if (roll_number == 7)
                     {
-                        Knock_pin(pins_standing, 3);
+                        Knock_pin(pins_standing, 3, strength);
                     }
 
                     //Give score
