@@ -38,6 +38,7 @@ namespace Ascii_bowling
                 }
 
                 int[] frameRolls = score_sheet[i];
+
                 if (frameRolls != null)
                 {
                     for (int j = 0; j < frameRolls.Length; j++)
@@ -45,69 +46,21 @@ namespace Ascii_bowling
                         Console.SetCursorPosition(31 + (j * 2),1 + i * 4);
                         Console.Write($"{frameRolls[j]}");
                     }
-                    Console.SetCursorPosition(31, 3 + i * 4);
-                    Console.Write($"{total_score[i]}");
+                    if (i > 0 && frameRolls.Length > 1)
+                    {
+                        if (total_score[i]! > total_score[i - 1])
+                        {
+                            Console.SetCursorPosition(31, 3 + i * 4);
+                            Console.Write($"{total_score[i]}");
+                        }
+                    }
+                    else if (i == 0 && frameRolls.Length == 2)
+                    {
+                        Console.SetCursorPosition(31, 3 + i * 4);
+                        Console.Write($"{total_score[i]}");
+                    }
                 }
             }
-        }
-        static void Draw_scoreboard(int first_roll, int second_roll, int final_score)
-        {
-            for (int i = 0; i < 10; i++)
-                Console.WriteLine();
-
-            //After first roll
-            if (second_roll == -1 && first_roll < 10)
-            {
-            Console.WriteLine($"▄▄▄▄▄");
-            Console.WriteLine($"▌{first_roll}█ ▐");
-            Console.WriteLine($"█▀▀▀█");
-            Console.WriteLine($"█   █");
-            Console.WriteLine($"▀▀▀▀▀");
-            }
-            //Strike
-            else if (first_roll == 10)
-            {
-                Console.WriteLine($"▄▄▄▄▄");
-                Console.WriteLine($"STRIKE!");
-                Console.WriteLine($"█▀▀▀█");
-                Console.WriteLine($"█{final_score} █");
-                Console.WriteLine($"▀▀▀▀▀");
-            }
-            //Spare
-            else if (first_roll + second_roll == 10)
-            {
-                Console.WriteLine($"▄▄▄▄▄");
-                Console.WriteLine($"▌{first_roll}█/▐");
-                Console.WriteLine($"█▀▀▀█");
-                Console.WriteLine($"█{final_score} █");
-                Console.WriteLine($"▀▀▀▀▀");
-            }
-            //Both rolls
-            else if (final_score < 10)
-            {
-                Console.WriteLine($"▄▄▄▄▄");
-                Console.WriteLine($"▌{first_roll}█{second_roll}▐");
-                Console.WriteLine($"█▀▀▀█");
-                Console.WriteLine($"█ {final_score} █");
-                Console.WriteLine($"▀▀▀▀▀");
-            }
-            else if (final_score < 101)
-            {
-                Console.WriteLine($"▄▄▄▄▄");
-                Console.WriteLine($"▌{first_roll}█{second_roll}▐");
-                Console.WriteLine($"█▀▀▀█");
-                Console.WriteLine($"█{final_score} █");
-                Console.WriteLine($"▀▀▀▀▀");
-            }
-            else if (final_score > 100)
-            {
-                Console.WriteLine($"▄▄▄▄▄");
-                Console.WriteLine($"▌{first_roll}█{second_roll}▐");
-                Console.WriteLine($"█▀▀▀█");
-                Console.WriteLine($"█{final_score}█");
-                Console.WriteLine($"▀▀▀▀▀");
-            }
-
         }
         static void Draw_pins(List<bool> pins_standing)
         {
@@ -348,39 +301,36 @@ namespace Ascii_bowling
             Console.SetBufferSize(40, 45);
 
             //variables
-
-            int roll_number = -1;
+            int roll_number = 0;
             int final_score = 0;
             var pins_standing = new List<bool>();
             for (int i = 0; i < 10; i++)
                 pins_standing.Add(true);
 
             int[][] score_sheet = new int[10][];
-            int[] total_score = new int[10];
+            int[] points_gained = new int[10]
+            { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+            int[] total_score = new int[10]
+            { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
             var random = new Random();
 
             //Loop set
-            for (int i = 0; i < 10; i++)
+            for (int frame_index = 0; frame_index < 10; frame_index++)
             {
-                for (int j = 0; j < 10; j++)
+                for (int i = 0; i < 10; i++)
                 {
-                    pins_standing[j] = true;
+                    pins_standing[i] = true;
                 }
-
-                int first_roll = -1;
-                int second_roll = -1;
 
                 //Draw pins
                 Draw_pins(pins_standing);
+                Draw_whole_Scoreboard(score_sheet, total_score);
 
                 //Do 2 rolls
-                for (int j = 0; j < 2; j++)
+                for (int roll_index = 0; roll_index < 2; roll_index++)
                 {
-                    if (j == 0)
-                        first_roll = 0;
-                    if (j == 1)
-                        second_roll = 0;
+                    int pins_knocked = 0;
 
                     //Roll
                     //Enter where to aim
@@ -484,24 +434,90 @@ namespace Ascii_bowling
                     //Give score
                     for (int k = 0; k < 10; k++)
                     {
-                        if (pins_standing[k] == false && j == 0)
-                            first_roll += 1;
-                        if (pins_standing[k] == false && j == 1)
-                            second_roll += 1;
+                        if (pins_standing[k] == false)
+                            pins_knocked += 1;
                     }
 
-                    if (j == 1)
+                    if (roll_index == 0)
                     {
-                        second_roll -= first_roll;
-                        final_score += second_roll + first_roll;
-                        score_sheet[i] = new int[2] { first_roll, second_roll };
-                        total_score[i] = final_score;
+                        score_sheet[frame_index] = new int[1] { pins_knocked };
+                    }
+                    else if (roll_index == 1)
+                    {
+                        int first_roll = score_sheet[frame_index][0];
+                        int second_roll = pins_knocked - first_roll;
+                        score_sheet[frame_index] = new int[2] { first_roll, second_roll };
+                    }
+
+                    //Calculate points gained
+                    for (int i = 0; i < 9; i++)
+                    {
+                        if (score_sheet[i] != null)
+                        {
+                            if (score_sheet[i][0] == 10)
+                            {
+                                //Strike
+                                if (score_sheet[i + 1] != null)
+                                {
+                                    if (score_sheet[i + 1][0] == 10 && i < 8)
+                                    {
+                                        //2 strikes in a row
+                                        if (score_sheet[i + 2] != null)
+                                        {
+                                            points_gained[i] = 20 + score_sheet[i + 2][0];
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //1 strike
+                                        if (score_sheet[i + 1].Length > 1)
+                                        {
+                                            points_gained[i] = 10 + score_sheet[i + 1][0] + score_sheet[i + 1][1];
+                                        }
+                                    }
+                                }
+                            }
+                            else if (score_sheet[i].Length == 2)
+                            {
+                                if (score_sheet[i][0] + score_sheet[i][1] == 10)
+                                {
+                                    //Spare
+                                    if (score_sheet[i + 1] != null)
+                                    {
+                                        points_gained[i] = 10 + score_sheet[i + 1][0];
+                                    }
+                                }
+                                else
+                                {
+                                    //Normal
+                                    points_gained[i] = score_sheet[i][0] + score_sheet[i][1];
+                                }
+                            }
+                        }
+                    }
+
+                    //10th frame
+                    if (score_sheet[9] != null)
+                    {
+                        if (score_sheet[9].Length == 2)
+                            points_gained[9] = score_sheet[9][0] + score_sheet[9][1];
+
+                        if (score_sheet[9].Length == 3)
+                        {
+                            points_gained[9] += score_sheet[9][2];
+                        }
+                    }
+                    //Calculate total score
+                    for (int i = 0; i < 10; i++)
+                    {
+                        total_score[i] = points_gained[i];
+                        if (i != 0)
+                            total_score[i] += total_score[i - 1];
                     }
 
                     //Draw stuff
                     Console.Clear();
                     Draw_pins(pins_standing);
-                    Draw_scoreboard(first_roll, second_roll, final_score);
                     Draw_whole_Scoreboard(score_sheet, total_score);
                 }
 
@@ -511,7 +527,7 @@ namespace Ascii_bowling
                 Console.ReadLine();
                 Console.Clear();
             }
-            Console.WriteLine($"Your final score was {final_score}!");
+            Console.WriteLine($"Your final score was {total_score[9]}!");
         }
     }
 }
