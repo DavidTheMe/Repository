@@ -1,0 +1,12 @@
+﻿Capitalization conventions
+Identifier		Casing			Example
+Namespace		camel			ascii_stuff
+Type			camel			crew_type
+Method			upper camel		Initialize_Desert_Planet
+Field			camel			intro_text
+Enum value		camel			toxic_slime_suit
+Parameter		camel			this_situation
+#region			upper camel		Desert_Planet_Village_Situation
+
+Acronyms and uppercase abbreviations stay all uppercase in in upper camel case (Situation_ID).
+
