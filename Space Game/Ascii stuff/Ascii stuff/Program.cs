@@ -14,7 +14,6 @@ namespace Ascii_stuff
     enum item_type
     {
         //Tools
-        pickaxe,
         shovel,
         compass,
         mysterious_object,
@@ -56,10 +55,16 @@ namespace Ascii_stuff
 
         static situation test_situation = new situation();
         static situation another_situation = new situation();
-        
+
+        static situation back_to_ship = new situation();
+
+        #region Initialize_All_Planets
         static situation desert_planet_situation = new situation();
         static situation desert_planet_village_situation = new situation();
         static situation desert_planet_village_converse_with_alien = new situation();
+        static situation desert_planet_escape_from_aliens = new situation();
+        static situation desert_planet_cave_situation = new situation();
+
         static void Initialize_Desert_Planet()
         {
             #region Choose_Inhabitance
@@ -86,12 +91,19 @@ namespace Ascii_stuff
             }
             #endregion
 
+            #region Back_to_ship
+            back_to_ship.initialize = delegate ()
+            {
+                Back_To_Ship();
+            };
+            #endregion
+
             #region Desert_Planet_Situation
             desert_planet_situation.initialize = delegate ()
             {
                 var things_you_see = new List<string>();
 
-                bool high_sand_dunes = true;
+                bool high_sand_dunes = false;
 
                 var possible_choices = new List<choice>
                 {
@@ -99,17 +111,19 @@ namespace Ascii_stuff
                     {
                         option_text = $"Go to village",
                         next_situation = desert_planet_village_situation,
-                        initialize = delegate ()
+                        initialize = delegate
                         {
-                        },
-                        condition = delegate()
-                        {
-                            return inventory.Contains(item_type.lava_suit);
+                            things_you_see.Add("a small village");
                         }
                     },
                     new choice
                     {
                         option_text = $"Go to cave",
+                        next_situation = desert_planet_cave_situation,
+                        initialize = delegate
+                        {
+                            things_you_see.Add("cave enterance");
+                        }
                     },
                     new choice
                     {
@@ -119,18 +133,34 @@ namespace Ascii_stuff
                     new choice
                     {
                         option_text = $"Climb on top of the sand dune you're on",
+                        initialize = delegate
+                        {
+                            high_sand_dunes = true;
+                        }
                     },
                     new choice
                     {
                         option_text = $"Go to pond",
+                        initialize = delegate
+                        {
+                            things_you_see.Add("pond");
+                        }
                     },
                     new choice
                     {
                         option_text = $"Say hello to the caravan",
+                        initialize = delegate
+                        {
+                            things_you_see.Add("wandering caravan");
+                        }
                     },
                     new choice
                     {
                         option_text = $"Go to city",
+                        initialize = delegate
+                        {
+                            things_you_see.Add("relatively big city");
+                        }
                     },
                 };
 
@@ -149,7 +179,6 @@ namespace Ascii_stuff
             #region Desert_Planet_Village_Situation
             desert_planet_village_situation.initialize = delegate ()
             {
-
                 var possible_choices = new List<choice>
                 {
                     new choice
@@ -193,6 +222,7 @@ namespace Ascii_stuff
                     new choice
                     {
                         option_text = $"Go back to ship",
+                        next_situation = back_to_ship,
                     },
                     new choice
                     {
@@ -202,7 +232,8 @@ namespace Ascii_stuff
                             return inventory.Contains(item_type.mysterious_object);
                         },
                         fail_text = "You start digging in your pockets but you realize that you don't have anything that it would need \n" +
-                        "It's such a simple happy creature that probably wouldn't care for materialistic things."
+                        "It's such a simple happy creature that probably wouldn't care for materialistic things.",
+                        next_situation = desert_planet_escape_from_aliens
                     },
                 };
 
@@ -221,7 +252,80 @@ namespace Ascii_stuff
                 $"'Hey, you're not too bad for being a {alien_creature}' without really thinking about the implications";
             };
             #endregion
+
+            #region Desert_Planet_Escape_From_Aliens
+            desert_planet_escape_from_aliens.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Run back to the ship",
+                        next_situation = back_to_ship,
+                    },
+                };
+
+                Pick_Choices(desert_planet_escape_from_aliens, possible_choices, 1);
+
+                desert_planet_escape_from_aliens.intro_text =
+                "You start digging in your pockets...\n" +
+                $"The {alien_creature} sees the mysterious object in your pockets and starts pointing at it while screaming \n" +
+                "Every one sitting at the table starts freaking out. You stand up in shock \n" +
+                $"The {alien_creature} starts slowly walking towards you and you get the feeling that he doesn't have good intentions \n" +
+                "You start running away from it and it chases you. The only logical thing to do here would be to escape... \n" +
+                "Even though is ended badly, it was nice to befriend some aliens for a while atleast \n" +
+                "(+20 Morale)";
+
+                int amount_of_morale = 20;
+                if (morale + amount_of_morale > 100)
+                    morale = 100;
+                else
+                    morale += 20;
+            };
+            #endregion
+
+            #region Desert_Planet_Cave_Situation
+            desert_planet_cave_situation.initialize = delegate ()
+            {
+                bool there_is_a_tunnel = false;
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Try to keep digging the tunnels",
+                        next_situation = desert_planet_village_situation,
+
+                        initialize = delegate
+                        {
+                            bool there_is_a_tunnel = true;
+                        },
+
+                        condition = delegate ()
+                        {
+                            return inventory.Contains(item_type.shovel);
+                        },
+
+                        fail_text = "You try to dig into the sand with your hands but it's pretty hard \n" +
+                        "You realize that it was actually rather silly to try digging in a cave with your hands \n" +
+                        "(Didn't you read the hint?)"
+                    },
+                };
+
+                // Pick three choices you can make
+                Pick_Choices(desert_planet_cave_situation, possible_choices, 2);
+
+                desert_planet_cave_situation.intro_text = "You walk down the stairs of the cave and you see a sign on the wall \n" +
+                $"{(there_is_a_tunnel == true ? "It says 'GOLD MINE' with big bold letters. Despite apparently being a gold mine it's not too deep" : "It says 'Tread lightly'. 'Okay I will' you think to yourself")}\n" +
+                "The walls seem to be made out of not too compact sandstone that could probably \n" +
+                "be dug into with a decent digging tool *hint hint*";
+            };
+            #endregion
         }
+        #endregion
+
+        #region State_Initialize
         static void State_Initialize()
         {
             food = 10;
@@ -238,8 +342,8 @@ namespace Ascii_stuff
 
 
             inventory = new List<item_type>();
-            inventory.Add(item_type.lava_suit);
-            inventory.Add(item_type.pickaxe);
+            inventory.Add(item_type.shovel);
+            inventory.Add(item_type.mysterious_object);
 
             game_text = new List<string>();
 
@@ -292,7 +396,9 @@ namespace Ascii_stuff
                 next_situation = test_situation
             });
         }
+        #endregion
 
+        #region Art
         //Art
         static void Art_Blank()
         {
@@ -436,7 +542,7 @@ namespace Ascii_stuff
         }
         static void Art_Spaceship_Animation()
         {
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 4; i++)
             {
                 Console.SetCursorPosition(0, 0);
                 Console.WriteLine("                          ██                                                                        ");
@@ -508,8 +614,10 @@ namespace Ascii_stuff
                 Console.SetCursorPosition(0, 0);
             }
         }
+        #endregion
 
         //UI
+        #region UI_Draw_All
         static void UI_Draw_All()
         {
             Console.Clear();
@@ -520,6 +628,9 @@ namespace Ascii_stuff
             UI_Inventory();
             UI_Game_Text();
         }
+        #endregion
+
+        #region UI_Resources
         static void UI_Resources()
         {
             int pos_x = 108;
@@ -568,6 +679,9 @@ namespace Ascii_stuff
             Console.SetCursorPosition(pos_x, pos_y + 10);
             Console.WriteLine("█████████████████████");
         }
+        #endregion
+
+        #region UI_Crew
         static void UI_Crew()
         {
             int pos_x = 104;
@@ -610,6 +724,9 @@ namespace Ascii_stuff
                 }
             }
         }
+        #endregion
+
+        #region UI_Inventory
         static void UI_Inventory()
         {
             int pos_x = 104;
@@ -624,6 +741,9 @@ namespace Ascii_stuff
                 Console.Write(inventory[i]);
             }
         }
+        #endregion
+
+        #region UI_Game_Text
         static void UI_Game_Text()
         {
             int pos_x = 2;
@@ -643,16 +763,18 @@ namespace Ascii_stuff
             Console.SetCursorPosition(2, 51);
             Console.Write("__________________________________________________________________________________________");
         }
+        #endregion
 
         //Choices
+        #region Pick_Choices
         private static void Pick_Choices(situation current_situation, List<choice> possible_choices, int number_of_choices)
         {
             var rand = new Random();
+            bool doable_choice_selected = false;
 
             current_situation.choices.Clear();
             for (int current_option = 0; current_option < number_of_choices; current_option++)
             {
-                bool doable_choice_selected = false;
                 bool condition_passed = false;
                 choice selected_choice;
 
@@ -683,6 +805,9 @@ namespace Ascii_stuff
                 }
             }
         }
+        #endregion
+
+        #region Make_A_Choice
         static void Make_A_Choice(situation this_situation)
         {
             this_situation.initialize();
@@ -745,6 +870,21 @@ namespace Ascii_stuff
                 }
             } while (true);
         }
+        #endregion
+
+        #region Back_To_Ship
+        static void Back_To_Ship()
+        {
+            game_text.Add("You get on your ship and set course to your next planet");
+            game_text.Add("While you're waiting to get there you eat some food");
+            UI_Draw_All();
+            Art_Spaceship_Animation();
+            game_text.Add("");
+            game_text.Add("After a smooth ride you land on your next planet...");
+            Initialize_Desert_Planet();
+            Make_A_Choice(desert_planet_situation);
+        }
+        #endregion
 
         static void Main(string[] args)
         {
@@ -753,8 +893,7 @@ namespace Ascii_stuff
             Console.SetWindowSize(135, 55);
 
             State_Initialize();
-            Initialize_Desert_Planet();
-            Make_A_Choice(desert_planet_situation);
+            Back_To_Ship();
         }
     }
 }
