@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Ascii_stuff
@@ -33,8 +34,7 @@ namespace Ascii_stuff
     {
         public string option_text;
         public situation next_situation;
-        public Func<bool> condition;
-        public string fail_text;
+        public Func<string> condition;
         public Action initialize;
     }
     class situation
@@ -58,6 +58,257 @@ namespace Ascii_stuff
         static List<string> game_text;
         static int planets_explored;
 
+        static Dictionary <item_type, int>prices;
+
+
+        #region Initialize_Shop
+
+        #region Assign_Shop_Items
+        static void Assign_Shop_Items(situation buy_items_situation)
+        {
+            var buy_items_again = new situation()
+            {
+                intro_text = "'Watcha buyin?'"
+            };
+
+            buy_items_again.initialize = delegate ()
+            {
+                buy_items_again.choices.Clear();
+                buy_items_again.choices.AddRange(buy_items_situation.choices);
+            };
+
+            var sell_items = new situation
+            {
+                intro_text = "'Watcha sellin?'",
+            };
+
+            sell_items.initialize = delegate ()
+            {
+                Assign_Items_To_Sell(sell_items, buy_items_again);
+            };
+
+            buy_items_situation.choices.Clear();
+
+            List<item_type> all_items = Enum.GetValues(typeof(item_type)).Cast<item_type>().ToList();
+            var rand = new Random();
+
+            int shop_items_count = rand.Next(2, 5);
+
+            for (int i = 0; i < shop_items_count; i++)
+            {
+                int item_to_add = rand.Next(all_items.Count);
+                item_type item_available = all_items[item_to_add];
+                all_items.RemoveAt(item_to_add);
+
+                int cost = prices[item_available];
+
+                var item_sold_situation = new situation
+                {
+                    intro_text = $"You bought a {item_available}",
+                    initialize = delegate 
+                    { 
+                        inventory.Add(item_available);
+                        Add_Money(-cost);
+                    },
+
+                    choices = new List<choice>
+                    {
+                        new choice
+                        {
+                            option_text = $"1. Keep shopping",
+                            next_situation = buy_items_again,
+                        }
+                    }
+                };
+
+                var item_choice = new choice
+                {
+                    option_text = $"{i + 1}. Buy {item_available} ({cost}$)",
+                    next_situation = item_sold_situation,
+
+                    condition = delegate ()
+                    {
+                        if (inventory.Contains(item_available))
+                            return "You already have one of those";
+
+                        if (money < cost)
+                            return "You're too broke :(";
+                        
+                        return null;
+                    },
+                };
+
+                buy_items_situation.choices.Add(item_choice);
+            }
+
+            var sell_choice = new choice
+            {
+                option_text = $"{shop_items_count + 1}. Sell something",
+                next_situation = sell_items
+            };
+            buy_items_situation.choices.Add(sell_choice);
+
+            var return_to_ship = new choice
+            {
+                option_text = $"{shop_items_count + 2}. Return to ship",
+                next_situation = back_to_ship
+            };
+            buy_items_situation.choices.Add(return_to_ship);
+        }
+        #endregion
+
+        #region Assign_Items_To_Sell
+        static void Assign_Items_To_Sell(situation sell_items_situation, situation buy_items_situation)
+        {
+            sell_items_situation.choices.Clear();
+
+            var rand = new Random();
+
+            for (int i = 0; i < inventory.Count; i++)
+            {
+
+                item_type item_to_sell = inventory[i];
+
+                int cost = (int)(prices[item_to_sell] * 0.8);
+
+                int item_to_sell_index = i;
+
+                var item_bought_situation = new situation
+                {
+                    intro_text = $"You sold a {item_to_sell}",
+                    initialize = delegate
+                    {
+                        inventory.RemoveAt(item_to_sell_index);
+                        Add_Money(cost);
+                    },
+
+                    choices = new List<choice>
+                    {
+                        new choice
+                        {
+                            option_text = $"1. Keep selling",
+                            next_situation = sell_items_situation,
+                        }
+                    }
+                };
+
+                var item_choice = new choice
+                {
+                    option_text = $"{i + 1}. Sell {inventory[i]} ({cost}$)",
+                    next_situation = item_bought_situation,
+                };
+
+                sell_items_situation.choices.Add(item_choice);
+            }
+            var buy_choice = new choice
+            {
+                option_text = $"{inventory.Count + 1}. Buy something",
+                next_situation = buy_items_situation
+            };
+            sell_items_situation.choices.Add(buy_choice);
+
+            var return_to_ship = new choice
+            {
+                option_text = $"{inventory.Count + 2}. Return to ship",
+                next_situation = back_to_ship
+            };
+            sell_items_situation.choices.Add(return_to_ship);
+        }
+        #endregion
+
+        #endregion
+
+        #region Random_Ship_Event_On_Ship
+
+        static void Random_Ship_Event()
+        {
+            var rand = new Random();
+
+            if (rand.Next(5) == 0)
+            {
+                #region Lava_Alien_Pet
+                if (crew.Contains(crew_type.lava_alien_pet))
+                {
+                    int random_number = rand.Next(1);
+                    string event_text;
+
+                    if (random_number == 0)
+                    {
+                        event_text = "The lava alien burned a hole in the floor of the ship and fell out \n" +
+                            "That's a shame... Luckily lava aliens are good at surviving in space so you don't feel too bad \n" +
+                            "You have to spend a couple of days repairing the ship though \n" +
+                            "(-3 food) (-1 Lava Alien Pet)";
+
+                        food -= 3;
+                        crew.Remove(crew_type.lava_alien_pet);
+                    }
+                    else if (random_number == 1)
+                    {
+                        event_text = "The lava alien makes a little squeek and it's sooo adorable \n" +
+                            "You are very happy you own this odd little pet\n" +
+                            "(+5 Morale)";
+
+                        Add_Morale(5);
+                    }
+                    else
+                    {
+                        event_text = "This event doesn't exist";
+                    }
+
+                    UI_Draw_Big_Line();
+                    UI_Add_Game_Text(event_text);
+                    UI_Draw_All();
+                    Console.ReadKey();
+                    Console.WriteLine("");
+                }
+                #endregion
+
+                #region Water_Alien_Pet
+                if (crew.Contains(crew_type.water_alien_pet))
+                {
+                    int random_number = rand.Next(2);
+                    string event_text;
+
+                    if (random_number == 0)
+                    {
+                        event_text = "The water alien blows a little bubble and it's really funny! Good job alien pet!! \n" +
+                            "(+10 Morale)";
+                        Add_Morale(10);
+                    }
+                    else if (random_number == 1)
+                    {
+                        event_text = "The water alien makes a little squeek and it's sooo adorable \n" +
+                            "You are very happy you own this odd little pet\n" +
+                            "(+5 Morale)";
+
+                        Add_Morale(5);
+                    }
+                    else if (random_number == 2)
+                    {
+                        event_text = "You are a bit thirsty so you stick a straw into the water alien and drink a bit of it \n" +
+                            "Your thirst is clenched but you feel a bit bad for your pet\n" +
+                            "(-5 Morale) (+1 Food)";
+
+                        food += 1;
+                        Add_Morale(-5);
+                    }
+                    else
+                    {
+                        event_text = "This event doesn't exist";
+                    }
+
+                    UI_Draw_Big_Line();
+                    UI_Add_Game_Text(event_text);
+                    UI_Draw_All();
+                    Console.ReadKey();
+                    Console.WriteLine("");
+                }
+                #endregion
+            }
+        }
+
+        #endregion
+
         static situation back_to_ship = new situation();
 
         #region Initialize_All_Planets
@@ -79,12 +330,14 @@ namespace Ascii_stuff
         static situation desert_planet_water_alien_friend = new situation();
         static situation desert_planet_drink_water = new situation();
         static situation desert_planet_pond_treasure = new situation();
+        static situation desert_planet_caravan_buy = new situation();
+        static situation desert_planet_lava_alien = new situation();
 
         static void Initialize_Desert_Planet()
         {
-            #region Choose_Inhabitance
-
             var rand = new Random();
+
+            #region Choose_Inhabitance
 
             string adjective = random_adjective[rand.Next(random_adjective.Count)];
             string alien_creature;
@@ -162,14 +415,15 @@ namespace Ascii_stuff
                             things_you_see.Add("pond");
                         }
                     },
-                    //new choice
-                    //{
-                        //option_text = $"Say hello to the caravan",
-                        //initialize = delegate
-                        //{
-                            //things_you_see.Add("wandering caravan");
-                        //}
-                    //},
+                    new choice
+                    {
+                        option_text = $"Say hello to the caravan",
+                        next_situation = desert_planet_caravan_buy,
+                        initialize = delegate
+                        {
+                            things_you_see.Add("wandering caravan");
+                        }
+                    },
                     new choice
                     {
                         option_text = $"Go to city",
@@ -252,9 +506,11 @@ namespace Ascii_stuff
                         option_text = $"Dig into the dump",
                         condition = delegate ()
                         {
-                            return inventory.Contains(item_type.shovel);
+                            if (!inventory.Contains(item_type.shovel))
+                                return "You start digging into the garbage with your hands\n" +
+                                "It seemed like a good idea at first but after a couple of hours you change your mind";
+                            return null;
                         },
-                        fail_text = "You start digging into the garbage with your hands. It seems like a such a great idea"
                     },
                 };
 
@@ -281,10 +537,11 @@ namespace Ascii_stuff
                         option_text = $"Give the {alien_creature} a gift",
                         condition = delegate ()
                         {
-                            return inventory.Contains(item_type.mysterious_object);
+                            if (!inventory.Contains(item_type.mysterious_object))
+                                return "You start digging in your pockets but you realize that you don't have anything that it would need \n" +
+                        "It's such a simple happy creature that probably wouldn't care for materialistic things.";
+                            return null;
                         },
-                        fail_text = "You start digging in your pockets but you realize that you don't have anything that it would need \n" +
-                        "It's such a simple happy creature that probably wouldn't care for materialistic things.",
                         next_situation = desert_planet_escape_from_aliens
                     },
                 };
@@ -347,6 +604,8 @@ namespace Ascii_stuff
             {
                 bool there_is_a_tunnel = false;
 
+                bool lava_alien_is_here = false;
+
                 int amount_of_minecarts = 0;
 
                 string cart_adjective1 = random_adjective[rand.Next(random_adjective.Count)];
@@ -361,14 +620,15 @@ namespace Ascii_stuff
 
                         initialize = delegate
                         {
-                            bool there_is_a_tunnel = true;
+                            there_is_a_tunnel = true;
                         },
 
                         condition = delegate ()
                         {
-                            return inventory.Contains(item_type.shovel);
+                            if (!inventory.Contains(item_type.pickaxe))
+                                return "You try to dig into the sand stone with your hands but it's pretty hard (Did you not read the hint?)";
+                            return null;
                         },
-                        fail_text = "You try to dig into the sand stone with your hands but it's pretty hard (Did you not read the hint?)"
                     },
                     new choice
                     {
@@ -390,6 +650,16 @@ namespace Ascii_stuff
                             amount_of_minecarts += 1;
                         },
                     },
+                    new choice
+                    {
+                        option_text = $"Try to feed the lava alien",
+                        next_situation = desert_planet_lava_alien,
+
+                        initialize = delegate
+                        {
+                            lava_alien_is_here = true;
+                        },
+                    },
                 };
 
                 // Pick the choices you can make
@@ -399,8 +669,9 @@ namespace Ascii_stuff
                 $"{(there_is_a_tunnel == true ? "It says 'GOLD MINE' with big bold letters. Despite apparently being a gold mine it's not too deep" : "It says 'Tread lightly'. 'Okay I will' you think to yourself")}\n" +
                 "The walls seem to be made out of not too compact sandstone that could probably \n" +
                 "be dug into with a decent digging tool *hint hint* \n" +
-                $"{(amount_of_minecarts == 1 ? "You see a minecart that is on a rail that seems to be leading into a tunnel": "")}" +
-                $"{(amount_of_minecarts == 2 ? "You see two minecarts that lead into eatch tunnel. This is outragous! Which one to go with??" : "")}";
+                $"{(amount_of_minecarts == 1 ? "You see a minecart that is on a rail that seems to be leading into a tunnel" : "")}" +
+                $"{(amount_of_minecarts == 2 ? "You see two minecarts that lead into eatch tunnel. This is outragous! Which one to go with??" : "")}" +
+                $"{(lava_alien_is_here ? "There's a little lava slime alien in the corner" : "")}";
             };
             #endregion
 
@@ -516,13 +787,14 @@ namespace Ascii_stuff
                     },
                     new choice
                     {
-                        option_text = $"Converse with one of the {alien_creature}",
+                        option_text = $"Converse with one of the {alien_creature_plural}",
                         next_situation = desert_planet_escape_from_aliens_city,
                         condition = delegate ()
                         {
-                            return inventory.Contains(item_type.mysterious_object);
+                            if (!inventory.Contains(item_type.mysterious_object))
+                                return $"You try to converse with some of the {alien_creature}s but they all seem too busy to talk";
+                            return null;
                         },
-                        fail_text = $"You try to converse with some of the {alien_creature}s but they all seem too busy to talk"
                     },
                     new choice
                     {
@@ -534,9 +806,10 @@ namespace Ascii_stuff
                         },
                         condition = delegate ()
                         {
-                            return inventory.Contains(item_type.laser_rifle);
+                            if (!inventory.Contains(item_type.laser_rifle))
+                                return $"You walk into the bank but you realize that you don't have anything to rob the bank with... Oops. You walk out again";
+                            return null;
                         },
-                        fail_text = $"You walk into the bank but you realize that you don't have anything to rob the bank with... Oops. You walk out again"
                     },
                 };
 
@@ -689,9 +962,11 @@ namespace Ascii_stuff
 
                         condition = delegate ()
                         {
-                            return inventory.Contains(item_type.swim_suit);
+                            if (!inventory.Contains(item_type.swim_suit))
+                                return $"You jump into the pond but you remember that you can't swim so you quickly get out of the water";
+                            return null;
                         },
-                        fail_text = $"You jump into the pond but you remember that you can't swim so you quickly get out of the water",
+
                         initialize = delegate
                         {
                             there_is_treasure = true;
@@ -784,6 +1059,44 @@ namespace Ascii_stuff
                 Add_Money(25);
             };
             #endregion
+
+            #region Desert_Planet_Caravan_Buy
+            desert_planet_caravan_buy.initialize = delegate ()
+            {
+                var rand = new Random();
+                
+                Assign_Shop_Items(desert_planet_caravan_buy);
+                desert_planet_caravan_buy.intro_text =
+                "You walk up to the caravan and it seems that they're willing to trade";
+            };
+            #endregion
+
+            #region Desert_Planet_Water_Alien_Friend
+            desert_planet_lava_alien.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Go back to ship with your new friend",
+                        next_situation = back_to_ship,
+                    },
+                };
+
+                Pick_Choices(desert_planet_lava_alien, possible_choices, 1);
+
+                desert_planet_lava_alien.intro_text =
+                "You give the lava alien some food and it gobbles it up quickly\n" +
+                "It seems to want to follow you everywhere you walk. I guess it's your friend now\n" +
+                "(+1 Lava Alien Pet) (-1 Food)";
+
+                food -= 1;
+                crew.Add(crew_type.lava_alien_pet);
+            };
+            #endregion
+
         }
         #endregion
 
@@ -792,7 +1105,7 @@ namespace Ascii_stuff
         {
             food = 10;
             fuel = 10;
-            money = 0;
+            money = 100;
             morale = 100;
             planets_explored = 0;
 
@@ -802,6 +1115,19 @@ namespace Ascii_stuff
 
             inventory = new List<item_type>();
             //inventory.Add(item_type.shovel);
+
+            prices = new Dictionary<item_type, int>
+            {
+                { item_type.shovel, 25},
+                { item_type.pickaxe, 35},
+                { item_type.compass, 10},
+                { item_type.mysterious_object, 70},
+                { item_type.laser_rifle, 40},
+
+                { item_type.lava_suit, 40},
+                { item_type.toxic_slime_suit, 30},
+                { item_type.swim_suit, 25}
+            };
 
             random_adjective = new List<string>();
             random_adjective.Add("shiny");
@@ -834,10 +1160,10 @@ namespace Ascii_stuff
 
         static void Add_Money(int money_to_add)
         {
-            if (money - money_to_add < 1)
+            money += money_to_add;
+
+            if (money < 0)
                 money = 0;
-            else
-                money += money_to_add;
         }
 
         static void Lose_If_You_Are_Supposed_To()
@@ -1248,6 +1574,18 @@ namespace Ascii_stuff
         }
         #endregion
 
+        #region UI_Add_Game_Text
+        static void UI_Add_Game_Text(string text)
+        {
+            string[] text_lines = text.Split('\n');
+
+            foreach (string line in text_lines)
+            {
+                game_text.Add(line);
+            }
+        }
+        #endregion
+
         #region UI_Draw_All
         static void UI_Draw_Big_Line(bool add_to_game_text = true)
         {
@@ -1284,7 +1622,8 @@ namespace Ascii_stuff
                     }
                     else
                     {
-                        condition_passed = selected_choice.condition();
+                        string fail_text = selected_choice.condition();
+                        condition_passed = fail_text == null;
                     }
                 } while (!condition_passed && !doable_choice_selected);
 
@@ -1311,12 +1650,7 @@ namespace Ascii_stuff
                 UI_Draw_Big_Line();
 
                 //Output intro text
-                string[] intro_text_lines = this_situation.intro_text.Split('\n');
-
-                foreach (string line in intro_text_lines)
-                {
-                    game_text.Add(line);
-                }
+                UI_Add_Game_Text(this_situation.intro_text);
 
                 game_text.Add("");
 
@@ -1330,37 +1664,41 @@ namespace Ascii_stuff
 
                 //Ask user for choice
                 int choice;
+                int choices_count = this_situation.choices.Count;
 
                 for (; ; )
                 {
                     UI_Draw_All();
                     Console.SetCursorPosition(2, 53);
-                    string choice_text = Console.ReadLine();
-                    choice = Int32.Parse(choice_text);
 
-                    if (choice <= this_situation.choices.Count && choice > 0)
+                    for (; ; )
                     {
-                        choice selectedChoice = this_situation.choices[choice - 1];
-                        bool condition_passed = true;
-
-                        if (selectedChoice.condition != null)
-                        {
-                            condition_passed = selectedChoice.condition();
-                        }
-
-                        if (condition_passed)
-                        {
-                            Make_A_Choice(selectedChoice.next_situation);
+                        ConsoleKeyInfo pressed_key = Console.ReadKey(true);
+                        bool succeded = Int32.TryParse(pressed_key.KeyChar.ToString(), out choice);
+                        if (succeded && choice >= 1 && choice <= choices_count)
                             break;
-                        }
-                        else
-                        {
-                            game_text.Add(selectedChoice.fail_text);
-                            game_text.Add("");
-                            UI_Draw_All();
-                            Console.ReadKey();
-                            break;
-                        }
+                    }
+
+                    choice selectedChoice = this_situation.choices[choice - 1];
+                    string fail_text = null;
+
+                    if (selectedChoice.condition != null)
+                    {
+                        fail_text = selectedChoice.condition();
+                    }
+
+                    if (fail_text == null)
+                    {
+                        Make_A_Choice(selectedChoice.next_situation);
+                        break;
+                    }
+                    else
+                    {
+                        UI_Add_Game_Text(fail_text);
+                        game_text.Add("");
+                        UI_Draw_All();
+                        Console.ReadKey();
+                        break;
                     }
                 }
             } while (true);
@@ -1370,7 +1708,6 @@ namespace Ascii_stuff
         #region Back_To_Ship
         static void Back_To_Ship()
         {
-            Lose_If_You_Are_Supposed_To();
             planets_explored += 1;
 
             UI_Draw_Big_Line();
@@ -1403,6 +1740,10 @@ namespace Ascii_stuff
             UI_Draw_All();
             Art_Spaceship_Animation();
 
+            
+
+            Lose_If_You_Are_Supposed_To();
+
             game_text.Add("");
             game_text.Add("After a smooth ride you land on your next planet...");
             Initialize_Desert_Planet();
@@ -1411,7 +1752,7 @@ namespace Ascii_stuff
         #endregion
 
         static void Main(string[] args)
-        {
+       {
             //Variables and other stuff to set at start
             Console.CursorVisible = false;
             Console.SetWindowSize(155, 55);
