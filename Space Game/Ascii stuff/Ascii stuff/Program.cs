@@ -216,6 +216,66 @@ namespace Ascii_stuff
         }
         #endregion
 
+        #region Assign_Food_Market
+        static void Assign_Food_Market(situation buy_items_situation)
+        {
+            buy_items_situation.choices.Clear();
+
+            var rand = new Random();
+
+            int shop_items_count = rand.Next(2, 5);
+
+            for (int i = 1; i <= shop_items_count; i++)
+            {
+                int food_to_add = i * 5;
+
+                int cost = i * 15;
+
+                var item_sold_situation = new situation
+                {
+                    intro_text = $"You bought {food_to_add} food",
+                    initialize = delegate
+                    {
+                        food += food_to_add;
+                        Add_Money(-cost);
+                    },
+
+                    choices = new List<choice>
+                    {
+                        new choice
+                        {
+                            option_text = $"1. Go back to ship",
+                            next_situation = back_to_ship,
+                        }
+                    }
+                };
+
+                var item_choice = new choice
+                {
+                    option_text = $"{i}. Buy {food_to_add} food ({cost}$)",
+                    next_situation = item_sold_situation,
+
+                    condition = delegate ()
+                    {
+                        if (money < cost)
+                            return "You're too broke :(";
+
+                        return null;
+                    },
+                };
+
+                buy_items_situation.choices.Add(item_choice);
+            }
+
+            var return_to_ship = new choice
+            {
+                option_text = $"{shop_items_count + 1}. Return to ship",
+                next_situation = back_to_ship
+            };
+            buy_items_situation.choices.Add(return_to_ship);
+        }
+        #endregion
+
         #endregion
 
         #region Random_Ship_Event_On_Ship
@@ -312,6 +372,8 @@ namespace Ascii_stuff
         static situation back_to_ship = new situation();
 
         #region Initialize_All_Planets
+
+        #region Desert_Planet
         static situation desert_planet_situation = new situation();
         static situation desert_planet_village_situation = new situation();
         static situation desert_planet_village_converse_with_alien = new situation();
@@ -851,24 +913,11 @@ namespace Ascii_stuff
             #region Desert_Planet_Food_Market
             desert_planet_food_market.initialize = delegate ()
             {
-                var rand = new Random();
+                    var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Run back to the ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_food_market, possible_choices, 1);
-
-                desert_planet_food_market.intro_text =
-                $"There are no shops in the game yet so you can't buy things, but here, have a alien pet \n" +
-                "(+1 alien pet)";
-                crew.Add(crew_type.lava_alien_pet);
-
+                    Assign_Food_Market (desert_planet_food_market);
+                    desert_planet_food_market.intro_text =
+                    "You walk up to the farmers market and they seem to have a bunch of food";
             };
             #endregion
 
@@ -1098,6 +1147,8 @@ namespace Ascii_stuff
             #endregion
 
         }
+        #endregion
+
         #endregion
 
         #region State_Initialize
