@@ -375,7 +375,7 @@ namespace Ascii_stuff
         {
             var rand = new Random();
 
-            if (rand.Next(5) == 0)
+            if (rand.Next(3) == 0)
             {
                 #region Lava_Alien_Pet
                 if (crew.Contains(crew_type.lava_alien_pet))
@@ -2099,6 +2099,8 @@ namespace Ascii_stuff
             UI_Draw_All();
             Art_Spaceship_Animation();
             Lose_If_You_Are_Supposed_To();
+
+            Random_Ship_Event();
 
             game_text.Add("");
             game_text.Add("After a smooth ride you arrive at your next destination...");
