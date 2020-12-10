@@ -18,7 +18,7 @@ namespace Ascii_stuff
         //Tools
         shovel,
         pickaxe,
-        compass,
+        fishing_rod,
         mysterious_object,
         laser_rifle,
 
@@ -26,7 +26,7 @@ namespace Ascii_stuff
         lava_suit,
         toxic_slime_suit,
         swim_suit
-        
+
     }
 
     // Classes
@@ -58,10 +58,9 @@ namespace Ascii_stuff
         static List<string> game_text;
         static int planets_explored;
 
-        static Dictionary <item_type, int>prices;
+        static Dictionary<item_type, int> prices;
 
-
-        #region Initialize_Shop
+        #region Situation_Helpers
 
         #region Assign_Shop_Items
         static void Assign_Shop_Items(situation buy_items_situation)
@@ -105,8 +104,8 @@ namespace Ascii_stuff
                 var item_sold_situation = new situation
                 {
                     intro_text = $"You bought a {item_available}",
-                    initialize = delegate 
-                    { 
+                    initialize = delegate
+                    {
                         inventory.Add(item_available);
                         Add_Money(-cost);
                     },
@@ -133,7 +132,7 @@ namespace Ascii_stuff
 
                         if (money < cost)
                             return "You're too broke :(";
-                        
+
                         return null;
                     },
                 };
@@ -216,6 +215,158 @@ namespace Ascii_stuff
         }
         #endregion
 
+        #region Assign_Food_Market
+        static void Assign_Food_Market(situation buy_items_situation)
+        {
+            buy_items_situation.choices.Clear();
+
+            var rand = new Random();
+
+            int shop_items_count = rand.Next(2, 5);
+
+            for (int i = 1; i <= shop_items_count; i++)
+            {
+                int food_to_add = i * 5;
+
+                int cost = i * 15;
+
+                var item_sold_situation = new situation
+                {
+                    intro_text = $"You bought {food_to_add} food",
+                    initialize = delegate
+                    {
+                        food += food_to_add;
+                        Add_Money(-cost);
+                    },
+
+                    choices = new List<choice>
+                    {
+                        new choice
+                        {
+                            option_text = $"1. Go back to ship",
+                            next_situation = back_to_ship,
+                        }
+                    }
+                };
+
+                var item_choice = new choice
+                {
+                    option_text = $"{i}. Buy {food_to_add} food ({cost}$)",
+                    next_situation = item_sold_situation,
+
+                    condition = delegate ()
+                    {
+                        if (money < cost)
+                            return "You're too broke :(";
+
+                        return null;
+                    },
+                };
+
+                buy_items_situation.choices.Add(item_choice);
+            }
+
+            var return_to_ship = new choice
+            {
+                option_text = $"{shop_items_count + 1}. Return to ship",
+                next_situation = back_to_ship
+            };
+            buy_items_situation.choices.Add(return_to_ship);
+        }
+        #endregion
+
+        #region Assign_Food_Market
+        static void Assign_Fuel_Prices(situation buy_items_situation)
+        {
+            buy_items_situation.choices.Clear();
+
+            var rand = new Random();
+
+            int shop_items_count = rand.Next(2, 5);
+
+            for (int i = 1; i <= shop_items_count; i++)
+            {
+                int fuel_to_add = i * 5;
+
+                int cost = i * 15;
+
+                var item_sold_situation = new situation
+                {
+                    intro_text = $"You bought {fuel_to_add} fuel",
+                    initialize = delegate
+                    {
+                        fuel += fuel_to_add;
+                        Add_Money(-cost);
+                    },
+
+                    choices = new List<choice>
+                    {
+                        new choice
+                        {
+                            option_text = $"1. Go back to ship",
+                            next_situation = back_to_ship,
+                        }
+                    }
+                };
+
+                var item_choice = new choice
+                {
+                    option_text = $"{i}. Buy {fuel_to_add} fuel ({cost}$)",
+                    next_situation = item_sold_situation,
+
+                    condition = delegate ()
+                    {
+                        if (money < cost)
+                            return "You're too broke :(";
+
+                        return null;
+                    },
+                };
+
+                buy_items_situation.choices.Add(item_choice);
+            }
+
+            var return_to_ship = new choice
+            {
+                option_text = $"{shop_items_count + 1}. Return to ship",
+                next_situation = back_to_ship
+            };
+            buy_items_situation.choices.Add(return_to_ship);
+        }
+        #endregion
+
+        #region Add_Back_To_Ship
+        static void Add_Back_To_Ship(situation current_situation, bool running = false)
+        {
+            string option_text = "Go back to the ship";
+
+            if (running)
+                option_text = "Run back to the ship";
+
+            current_situation.choices.Add
+            (
+                new choice
+                {
+                    option_text = $"{current_situation.choices.Count + 1}. {option_text}",
+                    next_situation = back_to_ship,
+                }
+            );
+        }
+
+        static void Add_Back_To_Ship_With_Friend(situation current_situation, string alien_type)
+        {
+            current_situation.choices.Add
+            (
+                new choice
+                {
+                    option_text = $"{current_situation.choices.Count + 1}. Go back to the ship with your new {alien_type} friend",
+                    next_situation = back_to_ship,
+                }
+            );
+        }
+
+        #endregion
+
         #endregion
 
         #region Random_Ship_Event_On_Ship
@@ -224,7 +375,7 @@ namespace Ascii_stuff
         {
             var rand = new Random();
 
-            if (rand.Next(5) == 0)
+            if (rand.Next(3) == 0)
             {
                 #region Lava_Alien_Pet
                 if (crew.Contains(crew_type.lava_alien_pet))
@@ -312,6 +463,8 @@ namespace Ascii_stuff
         static situation back_to_ship = new situation();
 
         #region Initialize_All_Planets
+
+        #region Desert_Planet
         static situation desert_planet_situation = new situation();
         static situation desert_planet_village_situation = new situation();
         static situation desert_planet_village_converse_with_alien = new situation();
@@ -332,6 +485,8 @@ namespace Ascii_stuff
         static situation desert_planet_pond_treasure = new situation();
         static situation desert_planet_caravan_buy = new situation();
         static situation desert_planet_lava_alien = new situation();
+        static situation desert_planet_dig_dump = new situation();
+        static situation desert_planet_pond_fish = new situation();
 
         static void Initialize_Desert_Planet()
         {
@@ -451,18 +606,6 @@ namespace Ascii_stuff
             desert_planet_pillage_the_village.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Run back to the ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_pillage_the_village, possible_choices, 1);
-
                 int how_much_food = rand.Next(1, 7);
 
                 desert_planet_pillage_the_village.intro_text =
@@ -480,6 +623,8 @@ namespace Ascii_stuff
                 inventory.Add(item_type.shovel);
                 Add_Morale(-50);
             };
+            Add_Back_To_Ship(desert_planet_pillage_the_village);
+
             #endregion
 
             #region Desert_Planet_Village_Situation
@@ -504,6 +649,7 @@ namespace Ascii_stuff
                     new choice
                     {
                         option_text = $"Dig into the dump",
+                        next_situation = desert_planet_dig_dump,
                         condition = delegate ()
                         {
                             if (!inventory.Contains(item_type.shovel))
@@ -529,11 +675,6 @@ namespace Ascii_stuff
                 {
                     new choice
                     {
-                        option_text = $"Go back to ship",
-                        next_situation = back_to_ship,
-                    },
-                    new choice
-                    {
                         option_text = $"Give the {alien_creature} a gift",
                         condition = delegate ()
                         {
@@ -546,7 +687,7 @@ namespace Ascii_stuff
                     },
                 };
 
-                Pick_Choices(desert_planet_village_converse_with_alien, possible_choices, 2);
+                Pick_Choices(desert_planet_village_converse_with_alien, possible_choices, 1);
 
                 desert_planet_village_converse_with_alien.intro_text =
                 $"You walk up to one of the {alien_creature_plural} and say hi. It looks at you for a while \n" +
@@ -571,17 +712,6 @@ namespace Ascii_stuff
             {
                 var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Run back to the ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_escape_from_aliens, possible_choices, 1);
-
                 desert_planet_escape_from_aliens.intro_text =
                 "You start digging in your pockets...\n" +
                 $"The {alien_creature} sees the mysterious object in your pockets and starts pointing at it while screaming \n" +
@@ -597,6 +727,7 @@ namespace Ascii_stuff
                 else
                     morale += 20;
             };
+            Add_Back_To_Ship(desert_planet_escape_from_aliens, true);
             #endregion
 
             #region Desert_Planet_Cave_Situation
@@ -680,17 +811,6 @@ namespace Ascii_stuff
             {
                 var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_minecart_rolercoaster, possible_choices, 1);
-
                 desert_planet_minecart_rolercoaster.intro_text =
                 "You get in the minecart and put it into motion\n" +
                 "The minecart starts moving very slowly and you notice how shaky it is\n" +
@@ -701,23 +821,13 @@ namespace Ascii_stuff
 
                 Add_Morale(10);
             };
+            Add_Back_To_Ship(desert_planet_minecart_rolercoaster);
             #endregion
 
             #region Desert_Planet_Minecart_long_walk
             desert_planet_minecart_long_walk.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_minecart_long_walk, possible_choices, 1);
 
                 desert_planet_minecart_long_walk.intro_text =
                 "You get in the minecart and put it into motion\n" +
@@ -731,23 +841,13 @@ namespace Ascii_stuff
                 Add_Morale(-15);
                 food -= 1;
             };
+            Add_Back_To_Ship(desert_planet_minecart_long_walk);
             #endregion
 
             #region Desert_Planet_Tunnels_Dug
             desert_planet_tunnels_dug.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_tunnels_dug, possible_choices, 1);
 
                 desert_planet_tunnels_dug.intro_text =
                 "You start digging with your pickaxe and it turns out that the sign was accurate\n" +
@@ -758,6 +858,7 @@ namespace Ascii_stuff
 
                 money += 40;
             };
+            Add_Back_To_Ship(desert_planet_tunnels_dug);
             #endregion
 
             #region Desert_Planet_City
@@ -829,23 +930,13 @@ namespace Ascii_stuff
             {
                 var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Run back to the ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_escape_from_aliens_city, possible_choices, 1);
-
                 desert_planet_escape_from_aliens_city.intro_text =
                 $"The {alien_creature} sees the mysterious object you got with you and starts pointing at it while screaming \n" +
                 $"Every {alien_creature} in the vicinity drops what they're doing and stares in shock\n" +
                 $"The {alien_creature} starts slowly walking towards you and you get the feeling that he doesn't have good intentions \n" +
                 "You start running away from it and they all start chasing you. The only logical thing to do here would be to escape...";
             };
+            Add_Back_To_Ship(desert_planet_escape_from_aliens_city, true);
             #endregion
 
             #region Desert_Planet_Food_Market
@@ -853,22 +944,9 @@ namespace Ascii_stuff
             {
                 var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Run back to the ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_food_market, possible_choices, 1);
-
+                Assign_Food_Market(desert_planet_food_market);
                 desert_planet_food_market.intro_text =
-                $"There are no shops in the game yet so you can't buy things, but here, have a alien pet \n" +
-                "(+1 alien pet)";
-                crew.Add(crew_type.lava_alien_pet);
-
+                "You walk up to the farmers market and they seem to have a bunch of food";
             };
             #endregion
 
@@ -876,17 +954,6 @@ namespace Ascii_stuff
             desert_planet_rob_bank.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Escape back to ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_rob_bank, possible_choices, 1);
 
                 desert_planet_rob_bank.intro_text =
                 "You pull out your laser rifle and walk into the bank\n" +
@@ -903,23 +970,13 @@ namespace Ascii_stuff
                 Add_Money(100);
                 Add_Morale(-25);
             };
+            Add_Back_To_Ship(desert_planet_rob_bank, true);
             #endregion
 
             #region Desert_Planet_Museum
             desert_planet_museum.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_museum, possible_choices, 1);
 
                 desert_planet_museum.intro_text =
                 $"You go to the museum and learn about the great desert war between {rand.Next(2050, 2500)} and {rand.Next(2500, 3100)}\n" +
@@ -929,6 +986,7 @@ namespace Ascii_stuff
                 Add_Money(-5);
                 Add_Morale(+10);
             };
+            Add_Back_To_Ship(desert_planet_museum);
             #endregion
 
             #region Desert_Planet_Pond
@@ -937,6 +995,8 @@ namespace Ascii_stuff
                 bool there_is_alien_friend = false;
 
                 bool there_is_treasure = false;
+
+                bool there_is_fish = false;
 
                 var possible_choices = new List<choice>
                 {
@@ -972,12 +1032,32 @@ namespace Ascii_stuff
                             there_is_treasure = true;
                         },
                     },
+                    new choice
+                    {
+                        option_text = $"Try to fish",
+                        next_situation = desert_planet_pond_fish,
+
+                        condition = delegate ()
+                        {
+                            if (!inventory.Contains(item_type.fishing_rod))
+                                return $"You try to fish but it feels like something is missing... like a fishing rod or something...\n" +
+                                "After about an hour of blankly staring at the fish waiting for it to catch itself,\n" +
+                                "you decide that this isn't the most time efficent way of doing things";
+                            return null;
+                        },
+
+                        initialize = delegate
+                        {
+                            there_is_fish = true;
+                        },
+                    }
                 };
 
                 Pick_Choices(desert_planet_pond, possible_choices, 2);
 
-                desert_planet_pond.intro_text = $"{(there_is_treasure == true ? "You walk up to the pond and you notice that it's much bigger and deeper than you initially thought\nYou look down into the water and you see a treasure" : "You walk up to the pond, It's a relatively small pond but not too small")}" +
-                $"{(there_is_alien_friend == true ? "There seems to be an alien sitting next to the water\nIt's like a little sentient blob of water. It's probably not too dangerous by the looks of it" : "")}";
+                desert_planet_pond.intro_text = $"{(there_is_treasure == true ? "You walk up to the pond and you notice that it's much bigger and deeper than you initially thought\nYou look down into the water and you see a treasure\n" : "You walk up to the pond, It's a relatively small pond but not too small\n")}" +
+                $"{(there_is_alien_friend == true ? "There seems to be an alien sitting next to the water\nIt's like a little sentient blob of water. It's probably not too dangerous by the looks of it\n" : "")}" +
+                $"{(there_is_fish == true ? "There are some fishes swiming around in the pond" : "")}";
 
             };
             #endregion
@@ -987,17 +1067,6 @@ namespace Ascii_stuff
             {
                 var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship with your new friend",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_water_alien_friend, possible_choices, 1);
-
                 desert_planet_water_alien_friend.intro_text =
                 "You get down on one knee and reach out your hands, kind of like how you would greet a dog\n" +
                 "The alien friend jumps on your shoulder to your suprise. It's your friend now it seems\n" +
@@ -1005,23 +1074,13 @@ namespace Ascii_stuff
 
                 crew.Add(crew_type.water_alien_pet);
             };
+            Add_Back_To_Ship_With_Friend(desert_planet_water_alien_friend, "water alien");
             #endregion
 
             #region Desert_Planet_Drink_Water
             desert_planet_drink_water.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_drink_water, possible_choices, 1);
 
                 desert_planet_drink_water.intro_text =
                 "For some reason it just makes sense to you to drink some water in the middle of the desert\n" +
@@ -1033,23 +1092,13 @@ namespace Ascii_stuff
 
                 Add_Morale(-10);
             };
+            Add_Back_To_Ship(desert_planet_drink_water);
             #endregion
 
             #region Desert_Planet_Pond_Treasure
             desert_planet_pond_treasure.initialize = delegate ()
             {
                 var rand = new Random();
-
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship with your new friend",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_pond_treasure, possible_choices, 1);
 
                 desert_planet_pond_treasure.intro_text =
                 "You put on your water suit and dive into the pond and get the treasure\n" +
@@ -1058,13 +1107,14 @@ namespace Ascii_stuff
 
                 Add_Money(25);
             };
+            Add_Back_To_Ship(desert_planet_pond_treasure);
             #endregion
 
             #region Desert_Planet_Caravan_Buy
             desert_planet_caravan_buy.initialize = delegate ()
             {
                 var rand = new Random();
-                
+
                 Assign_Shop_Items(desert_planet_caravan_buy);
                 desert_planet_caravan_buy.intro_text =
                 "You walk up to the caravan and it seems that they're willing to trade";
@@ -1076,17 +1126,6 @@ namespace Ascii_stuff
             {
                 var rand = new Random();
 
-                var possible_choices = new List<choice>
-                {
-                    new choice
-                    {
-                        option_text = $"Go back to ship with your new friend",
-                        next_situation = back_to_ship,
-                    },
-                };
-
-                Pick_Choices(desert_planet_lava_alien, possible_choices, 1);
-
                 desert_planet_lava_alien.intro_text =
                 "You give the lava alien some food and it gobbles it up quickly\n" +
                 "It seems to want to follow you everywhere you walk. I guess it's your friend now\n" +
@@ -1095,17 +1134,348 @@ namespace Ascii_stuff
                 food -= 1;
                 crew.Add(crew_type.lava_alien_pet);
             };
+            Add_Back_To_Ship_With_Friend(desert_planet_lava_alien, "lava alien");
             #endregion
 
+            #region Desert_Planet_Dig_Dump
+            desert_planet_dig_dump.initialize = delegate ()
+            {
+                desert_planet_dig_dump.intro_text =
+                "You use your shovel to dig into the dump and you dig up an old lava suit. Neat";
+
+                inventory.Add(item_type.lava_suit);
+            };
+            Add_Back_To_Ship(desert_planet_dig_dump);
+            #endregion
+
+            #region Desert_Planet_Pond_Fish
+            desert_planet_pond_fish.initialize = delegate ()
+            {
+                desert_planet_pond_fish.intro_text =
+                "You manage to catch some fish with your fishing rod\n" +
+                "(+3 Food)";
+
+                food += 3;
+            };
+            Add_Back_To_Ship(desert_planet_pond_fish);
+            #endregion
         }
+        #endregion
+
+        #region Water_Planet
+
+        static situation water_planet_situation = new situation();
+        static situation water_planet_fish = new situation();
+        static situation water_planet_dive = new situation();
+        static situation water_planet_city = new situation();
+        static situation water_planet_city_shop = new situation();
+        static situation water_planet_mermaid = new situation();
+        static situation water_planet_squid = new situation();
+        static situation water_planet_kill_squid = new situation();
+        static situation water_planet_squid_ask_to_move = new situation();
+        static situation water_planet_squid_talk = new situation();
+
+        static void Initialize_Water_Planet()
+        {
+            #region Water_Planet_Situation
+            water_planet_situation.initialize = delegate ()
+            {
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Dive into the water",
+                        next_situation = water_planet_dive,
+                        condition = delegate ()
+                        {
+                            if (!inventory.Contains(item_type.swim_suit))
+                                return "You jump into the water but you remember that you can't swim";
+                            return null;
+                        },
+                    },
+                    new choice
+                    {
+                        option_text = $"Try to fish",
+                        next_situation = water_planet_fish,
+                        condition = delegate ()
+                        {
+                            if (!inventory.Contains(item_type.fishing_rod))
+                                return "You don't have anything to fish with, you silly goose";
+                            return null;
+                        },
+                    },
+                };
+
+                // Pick three choices you can make
+                Pick_Choices(water_planet_situation, possible_choices, 2);
+
+                water_planet_situation.intro_text = "Looks like the next planet is a water planet \n" +
+                    "You deploy your blow up raft on your ship right before landing on the surface \n" +
+                    "There seems to be a fish shoal not too far off";
+            };
+            #endregion
+
+            #region Water_Planet_Fish
+            water_planet_fish.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                water_planet_fish.intro_text =
+                "You pull out your fishing rod and start fishing\n" +
+                "A couple of hours go by and you're a couple of fishes richer\n" +
+                "(+6 Food)";
+
+                food += 6;
+            };
+            Add_Back_To_Ship(water_planet_fish);
+            #endregion
+
+            #region Water_Planet_Dive
+            water_planet_dive.initialize = delegate ()
+            {
+                var things_you_see = new List<string>();
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Go to city",
+                        next_situation = water_planet_city,
+                        initialize = delegate
+                        {
+                            things_you_see.Add("a large city");
+                        }
+                    },
+                    new choice
+                    {
+                        option_text = $"Talk to mermaid",
+                        next_situation = water_planet_mermaid,
+                        initialize = delegate
+                        {
+                            things_you_see.Add("a mermaid");
+                        }
+                    },
+                    new choice
+                    {
+                        option_text = $"Walk up to squid",
+                        next_situation = water_planet_squid,
+                        initialize = delegate
+                        {
+                            things_you_see.Add("a big squid");
+                        }
+                    },
+                };
+
+                Pick_Choices(water_planet_dive, possible_choices, 2);
+
+                water_planet_dive.intro_text = "You dive into the water with your swim suit on and look around you\n" +
+                $"You see {things_you_see[0]} and {things_you_see[1]}";
+            };
+            #endregion
+
+            #region Water_Planet_City
+            water_planet_city.initialize = delegate ()
+            {
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Go to shop",
+                        next_situation = water_planet_city_shop
+                    },
+                };
+
+                Pick_Choices(water_planet_city, possible_choices, 1);
+
+                water_planet_city.intro_text = "You enter the underwater city. It seems to be inhabited by humanoid underwater people";
+            };
+            #endregion
+
+            #region Water_Planet_City_Shop
+            water_planet_city_shop.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                Assign_Shop_Items(water_planet_city_shop);
+                water_planet_city_shop.intro_text =
+                "You walk into the store and start looking at the items";
+            };
+            #endregion
+
+            #region Water_Planet_Mermaid
+            water_planet_mermaid.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                water_planet_mermaid.intro_text =
+                "You walk up to the mermaid. The closer you get to it the more you start to realize that this is not a normal mermaid\n" +
+                "After you've walked up to it you notice that it's almost twice your size and really muscular and monstorous\n" +
+                "Despite it's threatening aura you manage to squeek out a little 'hi'\n" +
+                "The mermaid punches you in the stomach and steals your wallet. You've just been mugged by a mermaid. Shoot\n" +
+                "Luckily you didn't bring all your life savings in it so it's not too much of a blow\n" +
+                "(-15 money) (-10 morale)";
+
+                Add_Money(-15); Add_Morale(-10);
+            };
+            Add_Back_To_Ship(water_planet_mermaid);
+            #endregion
+
+            #region Water_Planet_Squid
+            water_planet_squid.initialize = delegate ()
+            {
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = "Kill the squid",
+                        next_situation = water_planet_kill_squid,
+                        condition = delegate ()
+                        {
+                            if (!inventory.Contains(item_type.laser_rifle))
+                                return "You don't really have anything to kill the squid with\n" +
+                                "plus it's a pretty big scary creature so you decide not to attack it";
+                            return null;
+                        },
+                    },
+                    new choice
+                    {
+                        option_text = "Tell the squid to move away from the gold",
+                        next_situation = water_planet_squid_ask_to_move,
+                        condition = delegate ()
+                        {
+                            if (!inventory.Contains(item_type.laser_rifle))
+                                return "The squid doesn't relly want to and who are you to tell it what to do?";
+                            return null;
+                        },
+                    },
+                    new choice
+                    {
+                        option_text = "Talk to squid",
+                        next_situation = water_planet_squid_talk
+                    },
+                };
+
+                Pick_Choices(water_planet_squid, possible_choices, 3);
+
+                water_planet_squid.intro_text = "You walk up to the squid and you notice that it's sitting on a pile of gold\n";
+            };
+            #endregion
+
+            #region Water_Planet_Kill_Squid
+            water_planet_kill_squid.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                water_planet_kill_squid.intro_text =
+                "You shoot the squid right between its eyes with your laser rifle and it dies\n" +
+                "The gold is yours, plus you can eat the squid meat, although you feel like you could've been more peaceful here\n" +
+                "(+50 Money) (+6 Food) (-15 Morale)";
+
+                food += 6;
+                Add_Money(50);
+                Add_Morale(-15);
+            };
+            Add_Back_To_Ship(water_planet_kill_squid);
+            #endregion
+
+            #region Water_Planet_Squid_Ask_To_Move
+            water_planet_squid_ask_to_move.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                water_planet_squid_ask_to_move.intro_text =
+                "You tell the squid to move and it seems unfazed. It inspects you from head to toe with and evil look in its eyes\n" +
+                "Then suddenly it sees that you're carrying a laser rifle and swims away terrified\n" +
+                "You pick up the gold\n" +
+                "(+50 Money)";
+
+                Add_Money(50);
+            };
+            Add_Back_To_Ship(water_planet_squid_ask_to_move);
+            #endregion
+
+            #region Water_Planet_Squid_Talk
+            water_planet_squid_talk.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                water_planet_squid_talk.intro_text =
+                "You say hi to the squid and it says hi back\n" +
+                "The squid seems pretty happy to have a visitor\n" +
+                "You sit down with the squid and have a leangthy conversation over a cup of tea\n" +
+                "How does squids drink tea under water you may ask, well instead of using water in their tea they use air" +
+                "(+15 morale)";
+
+                Add_Morale(15);
+            };
+            Add_Back_To_Ship(water_planet_squid_talk);
+            #endregion
+        }
+        #endregion
+
+        #region Gas_Station
+        static situation gas_station_situation = new situation();
+        static situation gas_station_store = new situation();
+        static situation gas_station_refill_gas = new situation();
+
+        static void Initialize_Gas_Station()
+        {
+            #region Gas_Station_Situation
+            gas_station_situation.initialize = delegate ()
+            {
+                var possible_choices = new List<choice>
+                {
+                    new choice
+                    {
+                        option_text = $"Go into the store and look at wares",
+                        next_situation = gas_station_store,
+                    },
+                    new choice
+                    {
+                        option_text = $"Buy fuel",
+                        next_situation = gas_station_refill_gas,
+                    },
+                };
+
+                Pick_Choices(gas_station_situation, possible_choices, 2);
+
+                gas_station_situation.intro_text = "You arive at a gas station for travelers\n" +
+                "It seems like it's just about to close so you won't have time to both refill your fuel and look around in the store\n" +
+                "Choose wisely...";
+            };
+            #endregion
+
+            #region Gas_Station_Store
+            gas_station_store.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                Assign_Shop_Items(gas_station_store);
+                gas_station_store.intro_text =
+                "You walk into the gas station and look at the items...";
+            };
+            #endregion
+
+            #region Gas_Station_Refill_Gas
+            gas_station_refill_gas.initialize = delegate ()
+            {
+                var rand = new Random();
+
+                Assign_Fuel_Prices(gas_station_refill_gas);
+                gas_station_refill_gas.intro_text =
+                "You take a look at the gas prices...";
+            };
+            #endregion
+        }
+        #endregion
+
         #endregion
 
         #region State_Initialize
         static void State_Initialize()
         {
-            food = 10;
-            fuel = 10;
-            money = 100;
+            food = 7;
+            fuel = 7;
+            money = 40;
             morale = 100;
             planets_explored = 0;
 
@@ -1114,13 +1484,13 @@ namespace Ascii_stuff
             crew.Add(crew_type.player);
 
             inventory = new List<item_type>();
-            //inventory.Add(item_type.shovel);
+            //inventory.Add(item_type.swim_suit);
 
             prices = new Dictionary<item_type, int>
             {
                 { item_type.shovel, 25},
                 { item_type.pickaxe, 35},
-                { item_type.compass, 10},
+                { item_type.fishing_rod, 20},
                 { item_type.mysterious_object, 70},
                 { item_type.laser_rifle, 40},
 
@@ -1143,7 +1513,7 @@ namespace Ascii_stuff
 
             game_text = new List<string>();
 
-            #region Back_to_ship_Situation
+            #region Back_To_Ship_Situation
             back_to_ship.initialize = delegate ()
             {
                 Back_To_Ship();
@@ -1168,23 +1538,26 @@ namespace Ascii_stuff
 
         static void Lose_If_You_Are_Supposed_To()
         {
-            Console.Clear();
-            Console.SetCursorPosition(1, 1);
-            Console.Write("GAME OVER!!");
-            Console.SetCursorPosition(1, 3);
-            if (food < 0)
-                Console.Write($"You ran out of food so you ate yourself to death");
-            else if (morale < 0)
-                Console.Write($"You ran out of morale so you decided to go to some random planet and become a farmer or something");
-            else if (fuel < 0)
-                Console.Write($"You ran out of fuel so you went to the closest resort planets to live a peaceful life there for the rest of your life");
-            Console.SetCursorPosition(1, 5);
-            Console.Write($"You managed to explore {planets_explored} planets");
-
             if (food < 0 || morale < 0 || fuel < 0)
             {
-                for (; ; )
-                    Console.ReadKey();
+                Console.Clear();
+                Console.SetCursorPosition(1, 1);
+                Console.Write("GAME OVER!!");
+                Console.SetCursorPosition(1, 3);
+                if (food < 0)
+                    Console.Write($"You ran out of food so you ate yourself to death");
+                else if (morale < 0)
+                    Console.Write($"You ran out of morale so you decided to go to some random planet and become a farmer or something");
+                else if (fuel < 0)
+                    Console.Write($"You ran out of fuel so you went to the closest resort planets to live a peaceful life there for the rest of your life");
+                Console.SetCursorPosition(1, 5);
+                Console.Write($"You managed to explore {planets_explored} planets");
+
+                if (food < 0 || morale < 0 || fuel < 0)
+                {
+                    for (; ; )
+                        Console.ReadKey();
+                }
             }
         }
 
@@ -1603,41 +1976,27 @@ namespace Ascii_stuff
         private static void Pick_Choices(situation current_situation, List<choice> possible_choices, int number_of_choices)
         {
             var rand = new Random();
-            bool doable_choice_selected = false;
 
             current_situation.choices.Clear();
             for (int current_option = 0; current_option < number_of_choices; current_option++)
             {
-                bool condition_passed = false;
-                choice selected_choice;
+                int random_index = rand.Next(0, possible_choices.Count);
+                choice selected_choice = possible_choices[random_index];
 
-                do
-                {
-                    int random_index = rand.Next(0, possible_choices.Count);
-                    selected_choice = possible_choices[random_index];
-
-                    if (selected_choice.condition == null)
-                    {
-                        condition_passed = true;
-                    }
-                    else
-                    {
-                        string fail_text = selected_choice.condition();
-                        condition_passed = fail_text == null;
-                    }
-                } while (!condition_passed && !doable_choice_selected);
 
                 selected_choice.option_text = $"{current_option + 1}. {selected_choice.option_text}";
 
                 current_situation.choices.Add(selected_choice);
                 possible_choices.Remove(selected_choice);
-                doable_choice_selected = true;
 
                 if (selected_choice.initialize != null)
                 {
                     selected_choice.initialize();
                 }
             }
+
+            Add_Back_To_Ship(current_situation);
+
         }
         #endregion
 
@@ -1739,20 +2098,41 @@ namespace Ascii_stuff
 
             UI_Draw_All();
             Art_Spaceship_Animation();
-
-            
-
             Lose_If_You_Are_Supposed_To();
 
+            Random_Ship_Event();
+
             game_text.Add("");
-            game_text.Add("After a smooth ride you land on your next planet...");
-            Initialize_Desert_Planet();
-            Make_A_Choice(desert_planet_situation);
+            game_text.Add("After a smooth ride you arrive at your next destination...");
+
+            UI_Draw_All();
+
+            Console.ReadKey();
+
+            var rand = new Random();
+
+            int planet_to_choose = rand.Next(0, 3);
+
+            if (planet_to_choose == 0)
+            {
+                Initialize_Desert_Planet();
+                Make_A_Choice(desert_planet_situation);
+            }
+            else if (planet_to_choose == 1)
+            {
+                Initialize_Water_Planet();
+                Make_A_Choice(water_planet_situation);
+            }
+            else if (planet_to_choose == 2)
+            {
+                Initialize_Gas_Station();
+                Make_A_Choice(gas_station_situation);
+            }
         }
         #endregion
 
         static void Main(string[] args)
-       {
+        {
             //Variables and other stuff to set at start
             Console.CursorVisible = false;
             Console.SetWindowSize(155, 55);
